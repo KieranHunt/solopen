@@ -74,17 +74,18 @@ If it is running, enable local CLI access in Solo's settings, then re-run."
   done
 fi
 
-projects_json="$("$SOLO_CLI" projects list --json)" || fail "could not list Solo projects"
+projects_json="$("$SOLO_CLI" projects list --limit 500 --json)" || fail "could not list Solo projects"
 jq -e '.ok == true' >/dev/null <<<"$projects_json" || fail "solo-cli reported an error listing projects"
+jq -e '.data.hasMore | not' >/dev/null <<<"$projects_json" || fail "more than 500 Solo projects; raise the limit in this script"
 
 ancestor_ignore='["'"$HOME"'"]'
 
 match="$(jq -r --arg path "$target" \
-  'first(.projects[] | select(.path == $path)) | "\(.id)\t\(.name)"' <<<"$projects_json")"
+  'first(.data.projects[] | select(.path == $path)) | "\(.id)\t\(.name)"' <<<"$projects_json")"
 
 if [[ -z "$match" ]]; then
   match="$(jq -r --arg path "$target" --argjson ignore "$ancestor_ignore" '
-    [.projects[]
+    [.data.projects[]
      | select(.path as $p | $ignore | index($p) | not)
      | select(.path as $pp | ($path + "/") | startswith($pp + "/"))]
     | sort_by(.path | length)
@@ -97,7 +98,7 @@ if [[ -n "$match" ]]; then
   name="${match#*$'\t'}"
 else
   descendants="$(jq -r --arg path "$target" '
-    .projects[]
+    .data.projects[]
     | select(.path as $pp | ($pp + "/") | startswith($path + "/"))
     | "  \(.name) (id \(.id)) at \(.path)"' <<<"$projects_json")"
 
@@ -111,8 +112,8 @@ pass --force to create a project here anyway"
     fail "could not create a Solo project for $target"
   jq -e '.ok == true' >/dev/null <<<"$create_json" || fail "solo-cli reported an error creating the project"
 
-  id="$(jq -r '.project.id' <<<"$create_json")"
-  name="$(jq -r '.project.name' <<<"$create_json")"
+  id="$(jq -r '.data.project.id' <<<"$create_json")"
+  name="$(jq -r '.data.project.name' <<<"$create_json")"
   echo "created $name (id $id) at $target"
 fi
 

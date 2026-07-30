@@ -15,9 +15,9 @@ case "$*" in
     ;;
   esac
   ;;
-"projects list --json") cat "$PROJECTS_JSON" ;;
+"projects list --limit 500 --json") cat "$PROJECTS_JSON" ;;
 "projects create "*)
-  printf '{"ok":true,"command":"projects create","project":{"id":13,"name":"%s","path":"%s","isLinkedCheckout":false,"primaryProjectId":null},"alreadyExists":false}\n' "$3" "$4"
+  printf '{"ok":true,"command":"projects create","data":{"project":{"id":13,"name":"%s","displayName":null,"path":"%s"},"alreadyExists":false}}\n' "$3" "$4"
   ;;
 *)
   echo "stub solo-cli: unexpected args: $*" >&2

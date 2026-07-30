@@ -26,7 +26,11 @@ script says so immediately instead of polling.
 
 Installed on PATH via `~/bin/solo → ~/Projects/solo/solo`.
 `~/bin/solo-cli → /Applications/Solo.app/Contents/MacOS/solo-cli` exposes the
-bundled CLI the script shells out to (override with `SOLO_CLI`).
+bundled CLI the script shells out to (override with `SOLO_CLI`). Requires
+**local CLI access** enabled in Solo's settings; the script says so when it
+isn't. `solo-cli --json` responses wrap payloads as
+`{"ok":true,"data":{...}}` (verified live against Solo 0.9.3); projects are
+fetched with `--limit 500` and the script refuses if `hasMore` reports more.
 
 ## Open mechanism (spike, 2026-07-30)
 

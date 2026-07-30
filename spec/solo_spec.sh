@@ -11,13 +11,13 @@ setup_stub_env() {
     "$workspace/unregistered" "$workspace/parent/child/grand"
   ln -s "$workspace/vine" "$workspace/vine-link"
   cat >"$PROJECTS_JSON" <<EOF
-{"ok":true,"command":"projects list","projects":[
-  {"id":6,"name":"vine","path":"$workspace/vine","isLinkedCheckout":false,"primaryProjectId":null},
-  {"id":9,"name":"slo","path":"$workspace/slo","isLinkedCheckout":false,"primaryProjectId":null},
-  {"id":20,"name":"parent","path":"$workspace/parent","isLinkedCheckout":false,"primaryProjectId":null},
-  {"id":21,"name":"child","path":"$workspace/parent/child","isLinkedCheckout":false,"primaryProjectId":null},
-  {"id":7,"name":"~","path":"$HOME","isLinkedCheckout":false,"primaryProjectId":null}
-]}
+{"ok":true,"command":"projects list","data":{"hasMore":false,"projects":[
+  {"id":6,"name":"vine","displayName":null,"path":"$workspace/vine"},
+  {"id":9,"name":"slo","displayName":null,"path":"$workspace/slo"},
+  {"id":20,"name":"parent","displayName":null,"path":"$workspace/parent"},
+  {"id":21,"name":"child","displayName":null,"path":"$workspace/parent/child"},
+  {"id":7,"name":"~","displayName":null,"path":"$HOME"}
+]}}
 EOF
 }
 
@@ -112,7 +112,7 @@ Describe 'exact-match open'
   End
 
   It 'opens exactly one project when registered paths duplicate'
-    printf '{"ok":true,"projects":[{"id":6,"name":"vine","path":"%s"},{"id":66,"name":"vine-checkout","path":"%s"}]}\n' \
+    printf '{"ok":true,"data":{"hasMore":false,"projects":[{"id":6,"name":"vine","path":"%s"},{"id":66,"name":"vine-checkout","path":"%s"}]}}\n' \
       "$workspace/vine" "$workspace/vine" >"$SHELLSPEC_TMPBASE/dup.json"
     export PROJECTS_JSON="$SHELLSPEC_TMPBASE/dup.json"
     When run command ./solo "$workspace/vine"
