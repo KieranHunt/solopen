@@ -1,7 +1,5 @@
 # shellcheck shell=bash
 
-solo_root() { cd "$SHELLSPEC_PROJECT_ROOT" || return 1; "$@"; }
-
 setup_stub_env() {
   export PATH="$SHELLSPEC_PROJECT_ROOT/spec/support/bin:$PATH"
   export PROJECTS_JSON="$SHELLSPEC_TMPBASE/projects.json"
@@ -102,6 +100,22 @@ Describe 'exact-match open'
 
   It 'resolves symlinks before matching'
     When run command ./solo "$workspace/vine-link"
+    The status should equal 0
+    The output should equal 'opened vine (id 6)'
+    The contents of file "$OPEN_LOG" should equal 'solo://proj/6'
+  End
+
+  It 'resolves relative paths before matching'
+    When run run_solo_from "$workspace/unregistered" ../vine
+    The status should equal 0
+    The output should equal 'opened vine (id 6)'
+  End
+
+  It 'opens exactly one project when registered paths duplicate'
+    printf '{"ok":true,"projects":[{"id":6,"name":"vine","path":"%s"},{"id":66,"name":"vine-checkout","path":"%s"}]}\n' \
+      "$workspace/vine" "$workspace/vine" >"$SHELLSPEC_TMPBASE/dup.json"
+    export PROJECTS_JSON="$SHELLSPEC_TMPBASE/dup.json"
+    When run command ./solo "$workspace/vine"
     The status should equal 0
     The output should equal 'opened vine (id 6)'
     The contents of file "$OPEN_LOG" should equal 'solo://proj/6'

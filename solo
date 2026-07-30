@@ -80,7 +80,7 @@ jq -e '.ok == true' >/dev/null <<<"$projects_json" || fail "solo-cli reported an
 ancestor_ignore='["'"$HOME"'"]'
 
 match="$(jq -r --arg path "$target" \
-  '.projects[] | select(.path == $path) | "\(.id)\t\(.name)"' <<<"$projects_json")"
+  'first(.projects[] | select(.path == $path)) | "\(.id)\t\(.name)"' <<<"$projects_json")"
 
 if [[ -z "$match" ]]; then
   match="$(jq -r --arg path "$target" --argjson ignore "$ancestor_ignore" '
