@@ -7,8 +7,10 @@ setup_stub_env() {
   export CLI_LOG="$SHELLSPEC_TMPBASE/cli.log"
   workspace="$(mktemp -d "$SHELLSPEC_TMPBASE/workspace.XXXXXX")"
   workspace="$(realpath "$workspace")"
+  export HOME="$workspace/home"
   mkdir -p "$workspace/vine" "$workspace/vine/sub" "$workspace/vine-two" \
-    "$workspace/slo" "$workspace/unregistered" "$workspace/parent/child/grand"
+    "$workspace/slo" "$workspace/unregistered" "$workspace/parent/child/grand" \
+    "$HOME/Projects"
   ln -s "$workspace/vine" "$workspace/vine-link"
   cat >"$PROJECTS_JSON" <<EOF
 {"ok":true,"command":"projects list","data":{"hasMore":false,"projects":[
