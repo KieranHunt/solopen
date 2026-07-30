@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: solo <directory>
+
+Open (or create) the Solo project for a directory.
+
+  <directory>   directory whose Solo project to open
+  -h, --help    show this help
+EOF
+}
+
+die() {
+  printf 'solo: %s\n\n' "$1" >&2
+  usage >&2
+  exit 1
+}
+
+target=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h | --help)
+      usage >&2
+      exit 1
+      ;;
+    -*)
+      die "unknown option: $1"
+      ;;
+    *)
+      [[ -n "$target" ]] && die "expected exactly one directory, got extra argument: $1"
+      target="$1"
+      ;;
+  esac
+  shift
+done
+
+[[ -n "$target" ]] || die "a directory argument is required"
+[[ -e "$target" ]] || die "no such directory: $target"
+[[ -d "$target" ]] || die "not a directory: $target"
+
+die "project resolution not implemented yet"
