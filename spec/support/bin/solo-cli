@@ -1,6 +1,20 @@
 #!/bin/bash
 [ -n "${CLI_LOG:-}" ] && printf '%s\n' "$*" >>"$CLI_LOG"
+status_down() {
+  echo '{"ok":false,"error":{"code":"discovery_unavailable","message":"Solo app is not reachable"},"command":"status"}'
+  exit 69
+}
 case "$*" in
+"status --json")
+  case "${STATUS_MODE:-ok}" in
+  ok) echo '{"ok":true,"command":"status"}' ;;
+  down) status_down ;;
+  after-launch)
+    [ -f "$LAUNCH_MARKER" ] || status_down
+    echo '{"ok":true,"command":"status"}'
+    ;;
+  esac
+  ;;
 "projects list --json") cat "$PROJECTS_JSON" ;;
 "projects create "*)
   printf '{"ok":true,"command":"projects create","project":{"id":13,"name":"%s","path":"%s","isLinkedCheckout":false,"primaryProjectId":null},"alreadyExists":false}\n' "$3" "$4"

@@ -23,7 +23,7 @@ setup_stub_env() {
 EOF
 }
 
-reset_logs() { : >"$OPEN_LOG" && : >"$CLI_LOG"; }
+reset_logs() { : >"$OPEN_LOG" && : >"$CLI_LOG" && rm -f "$SHELLSPEC_TMPBASE/launched"; }
 
 Describe 'argument validation'
   It 'prints usage and fails on bare invocation'
@@ -198,5 +198,43 @@ Describe 'create-on-miss'
     When run command ./solo --force "$workspace"
     The status should equal 0
     The line 1 of output should equal "created $(basename "$workspace") (id 13) at $workspace"
+  End
+End
+
+Describe 'app lifecycle'
+  BeforeAll 'setup_stub_env'
+  BeforeEach 'reset_logs'
+
+  It 'does not launch the app when the API is already reachable'
+    When run command ./solo "$workspace/vine"
+    The status should equal 0
+    The output should equal 'opened vine (id 6)'
+    The contents of file "$OPEN_LOG" should equal 'solo://proj/6'
+  End
+
+  It 'launches the app and waits when nothing is running'
+    export STATUS_MODE=after-launch PS_SOLO_RUNNING=0
+    export LAUNCH_MARKER="$SHELLSPEC_TMPBASE/launched"
+    When run command ./solo "$workspace/vine"
+    The status should equal 0
+    The output should equal 'opened vine (id 6)'
+    The line 1 of contents of file "$OPEN_LOG" should equal '-a Solo'
+    The line 2 of contents of file "$OPEN_LOG" should equal 'solo://proj/6'
+  End
+
+  It 'explains how to enable CLI access when the app runs but the API is unreachable'
+    export STATUS_MODE=down PS_SOLO_RUNNING=1
+    When run command ./solo "$workspace/vine"
+    The status should equal 1
+    The stderr should include 'local CLI access'
+    The contents of file "$OPEN_LOG" should equal ''
+  End
+
+  It 'gives up with a clear error when the launched app never answers'
+    export STATUS_MODE=down PS_SOLO_RUNNING=0 SOLO_LAUNCH_TIMEOUT=1
+    When run command ./solo "$workspace/vine"
+    The status should equal 1
+    The stderr should include 'timed out'
+    The contents of file "$OPEN_LOG" should equal '-a Solo'
   End
 End

@@ -1,2 +1,6 @@
 #!/bin/bash
 printf '%s\n' "$*" >>"$OPEN_LOG"
+if [ "$*" = "-a Solo" ] && [ -n "${LAUNCH_MARKER:-}" ]; then
+  touch "$LAUNCH_MARKER"
+fi
+exit 0

@@ -1,0 +1,6 @@
+#!/bin/bash
+if [ "${PS_SOLO_RUNNING:-0}" = 1 ]; then
+  echo "/Applications/Solo.app/Contents/MacOS/Solo"
+fi
+echo "/sbin/launchd"
+exit 0

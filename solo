@@ -54,6 +54,26 @@ done
 
 target="$(realpath "$target")"
 
+api_ready() { "$SOLO_CLI" status --json >/dev/null 2>&1; }
+app_running() { ps -axo comm= | grep 'Solo\.app/Contents/MacOS/Solo$' >/dev/null; }
+
+if ! api_ready; then
+  if app_running; then
+    fail "Solo.app is running but its local API is unreachable — local CLI access is probably off.
+Enable local CLI access in Solo's settings, then re-run."
+  fi
+  open -a Solo
+  launch_timeout="${SOLO_LAUNCH_TIMEOUT:-15}"
+  deadline=$(($(date +%s) + launch_timeout))
+  until api_ready; do
+    if (($(date +%s) >= deadline)); then
+      fail "timed out after ${launch_timeout}s waiting for Solo.app to answer.
+If it is running, enable local CLI access in Solo's settings, then re-run."
+    fi
+    sleep 0.2
+  done
+fi
+
 projects_json="$("$SOLO_CLI" projects list --json)" || fail "could not list Solo projects"
 jq -e '.ok == true' >/dev/null <<<"$projects_json" || fail "solo-cli reported an error listing projects"
 
