@@ -52,8 +52,20 @@ target="$(realpath "$target")"
 projects_json="$("$SOLO_CLI" projects list --json)" || fail "could not list Solo projects"
 jq -e '.ok == true' >/dev/null <<<"$projects_json" || fail "solo-cli reported an error listing projects"
 
+ancestor_ignore='["'"$HOME"'"]'
+
 match="$(jq -r --arg path "$target" \
   '.projects[] | select(.path == $path) | "\(.id)\t\(.name)"' <<<"$projects_json")"
+
+if [[ -z "$match" ]]; then
+  match="$(jq -r --arg path "$target" --argjson ignore "$ancestor_ignore" '
+    [.projects[]
+     | select(.path as $p | $ignore | index($p) | not)
+     | select(.path as $pp | ($path + "/") | startswith($pp + "/"))]
+    | sort_by(.path | length)
+    | last // empty
+    | "\(.id)\t\(.name)"' <<<"$projects_json")"
+fi
 
 [[ -n "$match" ]] || fail "no Solo project found for $target"
 

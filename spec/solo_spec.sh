@@ -9,12 +9,16 @@ setup_stub_env() {
   export CLI_LOG="$SHELLSPEC_TMPBASE/cli.log"
   workspace="$(mktemp -d "$SHELLSPEC_TMPBASE/workspace.XXXXXX")"
   workspace="$(realpath "$workspace")"
-  mkdir -p "$workspace/vine" "$workspace/vine/sub" "$workspace/unregistered"
+  mkdir -p "$workspace/vine" "$workspace/vine/sub" "$workspace/vine-two" \
+    "$workspace/unregistered" "$workspace/parent/child/grand"
   ln -s "$workspace/vine" "$workspace/vine-link"
   cat >"$PROJECTS_JSON" <<EOF
 {"ok":true,"command":"projects list","projects":[
   {"id":6,"name":"vine","path":"$workspace/vine","isLinkedCheckout":false,"primaryProjectId":null},
-  {"id":9,"name":"slo","path":"$workspace/slo","isLinkedCheckout":false,"primaryProjectId":null}
+  {"id":9,"name":"slo","path":"$workspace/slo","isLinkedCheckout":false,"primaryProjectId":null},
+  {"id":20,"name":"parent","path":"$workspace/parent","isLinkedCheckout":false,"primaryProjectId":null},
+  {"id":21,"name":"child","path":"$workspace/parent/child","isLinkedCheckout":false,"primaryProjectId":null},
+  {"id":7,"name":"~","path":"$HOME","isLinkedCheckout":false,"primaryProjectId":null}
 ]}
 EOF
 }
@@ -107,6 +111,52 @@ Describe 'exact-match open'
     When run command ./solo "$workspace/unregistered"
     The status should equal 1
     The stderr should include "no Solo project found for $workspace/unregistered"
+    The contents of file "$OPEN_LOG" should equal ''
+  End
+End
+
+Describe 'deepest-ancestor resolution'
+  BeforeAll 'setup_stub_env'
+  BeforeEach 'reset_logs'
+
+  It 'opens the ancestor project of an unregistered subdirectory'
+    When run command ./solo "$workspace/vine/sub"
+    The status should equal 0
+    The output should equal 'opened vine (id 6)'
+    The contents of file "$OPEN_LOG" should equal 'solo://proj/6'
+  End
+
+  It 'prefers the deepest ancestor when projects nest'
+    When run command ./solo "$workspace/parent/child/grand"
+    The status should equal 0
+    The output should equal 'opened child (id 21)'
+    The contents of file "$OPEN_LOG" should equal 'solo://proj/21'
+  End
+
+  It 'prefers an exact match over a shallower ancestor'
+    When run command ./solo "$workspace/parent/child"
+    The status should equal 0
+    The output should equal 'opened child (id 21)'
+  End
+
+  It 'never ancestor-matches the ignored home project'
+    When run command ./solo "$HOME/Projects"
+    The status should equal 1
+    The stderr should include "no Solo project found for $HOME/Projects"
+    The contents of file "$OPEN_LOG" should equal ''
+  End
+
+  It 'still opens the home project via exact match'
+    When run command ./solo "$HOME"
+    The status should equal 0
+    The output should equal 'opened ~ (id 7)'
+    The contents of file "$OPEN_LOG" should equal 'solo://proj/7'
+  End
+
+  It 'does not treat a sibling with a shared prefix as an ancestor'
+    When run command ./solo "$workspace/vine-two"
+    The status should equal 1
+    The stderr should include "no Solo project found for $workspace/vine-two"
     The contents of file "$OPEN_LOG" should equal ''
   End
 End
