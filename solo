@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SOLO_CLI="${SOLO_CLI:-solo-cli}"
+
 usage() {
   cat <<'EOF'
 Usage: solo <directory>
@@ -15,6 +17,11 @@ EOF
 die() {
   printf 'solo: %s\n\n' "$1" >&2
   usage >&2
+  exit 1
+}
+
+fail() {
+  printf 'solo: %s\n' "$1" >&2
   exit 1
 }
 
@@ -40,4 +47,17 @@ done
 [[ -e "$target" ]] || die "no such directory: $target"
 [[ -d "$target" ]] || die "not a directory: $target"
 
-die "project resolution not implemented yet"
+target="$(realpath "$target")"
+
+projects_json="$("$SOLO_CLI" projects list --json)" || fail "could not list Solo projects"
+jq -e '.ok == true' >/dev/null <<<"$projects_json" || fail "solo-cli reported an error listing projects"
+
+match="$(jq -r --arg path "$target" \
+  '.projects[] | select(.path == $path) | "\(.id)\t\(.name)"' <<<"$projects_json")"
+
+[[ -n "$match" ]] || fail "no Solo project found for $target"
+
+id="${match%%$'\t'*}"
+name="${match#*$'\t'}"
+open "solo://proj/$id"
+echo "opened $name (id $id)"

@@ -1,0 +1,9 @@
+#!/bin/bash
+[ -n "${CLI_LOG:-}" ] && printf '%s\n' "$*" >>"$CLI_LOG"
+case "$*" in
+"projects list --json") cat "$PROJECTS_JSON" ;;
+*)
+  echo "stub solo-cli: unexpected args: $*" >&2
+  exit 64
+  ;;
+esac

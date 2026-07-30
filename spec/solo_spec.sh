@@ -1,5 +1,26 @@
 # shellcheck shell=bash
 
+solo_root() { cd "$SHELLSPEC_PROJECT_ROOT" || return 1; "$@"; }
+
+setup_stub_env() {
+  export PATH="$SHELLSPEC_PROJECT_ROOT/spec/support/bin:$PATH"
+  export PROJECTS_JSON="$SHELLSPEC_TMPBASE/projects.json"
+  export OPEN_LOG="$SHELLSPEC_TMPBASE/open.log"
+  export CLI_LOG="$SHELLSPEC_TMPBASE/cli.log"
+  workspace="$(mktemp -d "$SHELLSPEC_TMPBASE/workspace.XXXXXX")"
+  workspace="$(realpath "$workspace")"
+  mkdir -p "$workspace/vine" "$workspace/vine/sub" "$workspace/unregistered"
+  ln -s "$workspace/vine" "$workspace/vine-link"
+  cat >"$PROJECTS_JSON" <<EOF
+{"ok":true,"command":"projects list","projects":[
+  {"id":6,"name":"vine","path":"$workspace/vine","isLinkedCheckout":false,"primaryProjectId":null},
+  {"id":9,"name":"slo","path":"$workspace/slo","isLinkedCheckout":false,"primaryProjectId":null}
+]}
+EOF
+}
+
+reset_logs() { : >"$OPEN_LOG" && : >"$CLI_LOG"; }
+
 Describe 'argument validation'
   It 'prints usage and fails on bare invocation'
     When run command ./solo
@@ -48,5 +69,44 @@ Describe 'argument validation'
     When run command ./solo /tmp /tmp
     The status should equal 1
     The stderr should include 'extra argument'
+  End
+End
+
+Describe 'exact-match open'
+  BeforeAll 'setup_stub_env'
+  BeforeEach 'reset_logs'
+
+  run_solo_from() {
+    cd "$1" || return 1
+    shift
+    "$SHELLSPEC_PROJECT_ROOT/solo" "$@"
+  }
+
+  It 'opens a project whose path matches exactly'
+    When run command ./solo "$workspace/vine"
+    The status should equal 0
+    The output should equal 'opened vine (id 6)'
+    The contents of file "$OPEN_LOG" should equal 'solo://proj/6'
+  End
+
+  It 'opens the project for . from inside the directory'
+    When run run_solo_from "$workspace/vine" .
+    The status should equal 0
+    The output should equal 'opened vine (id 6)'
+    The contents of file "$OPEN_LOG" should equal 'solo://proj/6'
+  End
+
+  It 'resolves symlinks before matching'
+    When run command ./solo "$workspace/vine-link"
+    The status should equal 0
+    The output should equal 'opened vine (id 6)'
+    The contents of file "$OPEN_LOG" should equal 'solo://proj/6'
+  End
+
+  It 'reports when no project matches'
+    When run command ./solo "$workspace/unregistered"
+    The status should equal 1
+    The stderr should include "no Solo project found for $workspace/unregistered"
+    The contents of file "$OPEN_LOG" should equal ''
   End
 End
