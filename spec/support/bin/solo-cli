@@ -2,6 +2,9 @@
 [ -n "${CLI_LOG:-}" ] && printf '%s\n' "$*" >>"$CLI_LOG"
 case "$*" in
 "projects list --json") cat "$PROJECTS_JSON" ;;
+"projects create "*)
+  printf '{"ok":true,"command":"projects create","project":{"id":13,"name":"%s","path":"%s","isLinkedCheckout":false,"primaryProjectId":null},"alreadyExists":false}\n' "$3" "$4"
+  ;;
 *)
   echo "stub solo-cli: unexpected args: $*" >&2
   exit 64

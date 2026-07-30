@@ -107,12 +107,6 @@ Describe 'exact-match open'
     The contents of file "$OPEN_LOG" should equal 'solo://proj/6'
   End
 
-  It 'reports when no project matches'
-    When run command ./solo "$workspace/unregistered"
-    The status should equal 1
-    The stderr should include "no Solo project found for $workspace/unregistered"
-    The contents of file "$OPEN_LOG" should equal ''
-  End
 End
 
 Describe 'deepest-ancestor resolution'
@@ -139,11 +133,11 @@ Describe 'deepest-ancestor resolution'
     The output should equal 'opened child (id 21)'
   End
 
-  It 'never ancestor-matches the ignored home project'
+  It 'never ancestor-matches the ignored home project, creating instead'
     When run command ./solo "$HOME/Projects"
-    The status should equal 1
-    The stderr should include "no Solo project found for $HOME/Projects"
-    The contents of file "$OPEN_LOG" should equal ''
+    The status should equal 0
+    The line 1 of output should equal "created Projects (id 13) at $HOME/Projects"
+    The contents of file "$OPEN_LOG" should equal 'solo://proj/13'
   End
 
   It 'still opens the home project via exact match'
@@ -153,10 +147,56 @@ Describe 'deepest-ancestor resolution'
     The contents of file "$OPEN_LOG" should equal 'solo://proj/7'
   End
 
-  It 'does not treat a sibling with a shared prefix as an ancestor'
+  It 'does not treat a sibling with a shared prefix as an ancestor, creating instead'
     When run command ./solo "$workspace/vine-two"
+    The status should equal 0
+    The line 1 of output should equal "created vine-two (id 13) at $workspace/vine-two"
+    The contents of file "$OPEN_LOG" should equal 'solo://proj/13'
+  End
+End
+
+Describe 'create-on-miss'
+  BeforeAll 'setup_stub_env'
+  BeforeEach 'reset_logs'
+
+  It 'creates and opens a project for an unregistered directory'
+    When run command ./solo "$workspace/unregistered"
+    The status should equal 0
+    The line 1 of output should equal "created unregistered (id 13) at $workspace/unregistered"
+    The line 2 of output should equal 'opened unregistered (id 13)'
+    The contents of file "$OPEN_LOG" should equal 'solo://proj/13'
+    The contents of file "$CLI_LOG" should include "projects create unregistered $workspace/unregistered --json"
+  End
+
+  It 'uses the literal directory, not the enclosing git root'
+    mkdir -p "$workspace/unregistered/.git" "$workspace/unregistered/subdir"
+    When run command ./solo "$workspace/unregistered/subdir"
+    The status should equal 0
+    The line 1 of output should equal "created subdir (id 13) at $workspace/unregistered/subdir"
+    The contents of file "$CLI_LOG" should include "projects create subdir $workspace/unregistered/subdir --json"
+  End
+
+  It 'refuses to create over registered descendants and lists them'
+    When run command ./solo "$workspace"
     The status should equal 1
-    The stderr should include "no Solo project found for $workspace/vine-two"
+    The stderr should include 'registered projects exist beneath'
+    The stderr should include "vine (id 6) at $workspace/vine"
+    The stderr should include "child (id 21) at $workspace/parent/child"
+    The stderr should include '--force'
     The contents of file "$OPEN_LOG" should equal ''
+    The contents of file "$CLI_LOG" should not include 'projects create'
+  End
+
+  It 'creates despite descendants with --force after the path'
+    When run command ./solo "$workspace" --force
+    The status should equal 0
+    The line 1 of output should equal "created $(basename "$workspace") (id 13) at $workspace"
+    The contents of file "$OPEN_LOG" should equal 'solo://proj/13'
+  End
+
+  It 'creates despite descendants with --force before the path'
+    When run command ./solo --force "$workspace"
+    The status should equal 0
+    The line 1 of output should equal "created $(basename "$workspace") (id 13) at $workspace"
   End
 End

@@ -5,11 +5,12 @@ SOLO_CLI="${SOLO_CLI:-solo-cli}"
 
 usage() {
   cat <<'EOF'
-Usage: solo <directory>
+Usage: solo [--force] <directory>
 
 Open (or create) the Solo project for a directory.
 
   <directory>   directory whose Solo project to open
+  --force       create even if registered projects exist beneath the directory
   -h, --help    show this help
 EOF
 }
@@ -26,11 +27,15 @@ fail() {
 }
 
 target=""
+force=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -h | --help)
       usage >&2
       exit 1
+      ;;
+    --force)
+      force=1
       ;;
     -*)
       die "unknown option: $1"
@@ -67,9 +72,29 @@ if [[ -z "$match" ]]; then
     | "\(.id)\t\(.name)"' <<<"$projects_json")"
 fi
 
-[[ -n "$match" ]] || fail "no Solo project found for $target"
+if [[ -n "$match" ]]; then
+  id="${match%%$'\t'*}"
+  name="${match#*$'\t'}"
+else
+  descendants="$(jq -r --arg path "$target" '
+    .projects[]
+    | select(.path as $pp | ($pp + "/") | startswith($path + "/"))
+    | "  \(.name) (id \(.id)) at \(.path)"' <<<"$projects_json")"
 
-id="${match%%$'\t'*}"
-name="${match#*$'\t'}"
+  if [[ -n "$descendants" && $force -eq 0 ]]; then
+    fail "registered projects exist beneath $target:
+$descendants
+pass --force to create a project here anyway"
+  fi
+
+  create_json="$("$SOLO_CLI" projects create "$(basename "$target")" "$target" --json)" ||
+    fail "could not create a Solo project for $target"
+  jq -e '.ok == true' >/dev/null <<<"$create_json" || fail "solo-cli reported an error creating the project"
+
+  id="$(jq -r '.project.id' <<<"$create_json")"
+  name="$(jq -r '.project.name' <<<"$create_json")"
+  echo "created $name (id $id) at $target"
+fi
+
 open "solo://proj/$id"
 echo "opened $name (id $id)"
