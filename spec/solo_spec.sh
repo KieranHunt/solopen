@@ -25,25 +25,25 @@ reset_logs() { : >"$OPEN_LOG" && : >"$CLI_LOG" && rm -f "$SHELLSPEC_TMPBASE/laun
 
 Describe 'argument validation'
   It 'prints usage and fails on bare invocation'
-    When run command ./solo
+    When run script ./solopen
     The status should equal 1
     The stderr should include 'Usage:'
   End
 
   It 'prints usage and fails on -h'
-    When run command ./solo -h
+    When run script ./solopen -h
     The status should equal 1
     The stderr should include 'Usage:'
   End
 
   It 'prints usage and fails on --help'
-    When run command ./solo --help
+    When run script ./solopen --help
     The status should equal 1
     The stderr should include 'Usage:'
   End
 
   It 'rejects a nonexistent path'
-    When run command ./solo /path/that/does/not/exist
+    When run script ./solopen /path/that/does/not/exist
     The status should equal 1
     The stderr should include 'no such directory: /path/that/does/not/exist'
     The stderr should include 'Usage:'
@@ -54,7 +54,7 @@ Describe 'argument validation'
     BeforeAll 'setup'
 
     It 'rejects a file argument'
-      When run command ./solo "$afile"
+      When run script ./solopen "$afile"
       The status should equal 1
       The stderr should include "not a directory: $afile"
       The stderr should include 'Usage:'
@@ -62,13 +62,13 @@ Describe 'argument validation'
   End
 
   It 'rejects an unknown option'
-    When run command ./solo --bogus
+    When run script ./solopen --bogus
     The status should equal 1
     The stderr should include 'unknown option: --bogus'
   End
 
   It 'rejects extra directory arguments'
-    When run command ./solo /tmp /tmp
+    When run script ./solopen /tmp /tmp
     The status should equal 1
     The stderr should include 'extra argument'
   End
@@ -81,11 +81,11 @@ Describe 'exact-match open'
   run_solo_from() {
     cd "$1" || return 1
     shift
-    "$SHELLSPEC_PROJECT_ROOT/solo" "$@"
+    "$SHELLSPEC_PROJECT_ROOT/solopen" "$@"
   }
 
   It 'opens a project whose path matches exactly'
-    When run command ./solo "$workspace/vine"
+    When run script ./solopen "$workspace/vine"
     The status should equal 0
     The output should equal 'opened vine (id 6)'
     The contents of file "$OPEN_LOG" should equal 'solo://proj/6'
@@ -99,7 +99,7 @@ Describe 'exact-match open'
   End
 
   It 'resolves symlinks before matching'
-    When run command ./solo "$workspace/vine-link"
+    When run script ./solopen "$workspace/vine-link"
     The status should equal 0
     The output should equal 'opened vine (id 6)'
     The contents of file "$OPEN_LOG" should equal 'solo://proj/6'
@@ -115,7 +115,7 @@ Describe 'exact-match open'
     printf '{"ok":true,"data":{"hasMore":false,"projects":[{"id":6,"name":"vine","path":"%s"},{"id":66,"name":"vine-checkout","path":"%s"}]}}\n' \
       "$workspace/vine" "$workspace/vine" >"$SHELLSPEC_TMPBASE/dup.json"
     export PROJECTS_JSON="$SHELLSPEC_TMPBASE/dup.json"
-    When run command ./solo "$workspace/vine"
+    When run script ./solopen "$workspace/vine"
     The status should equal 0
     The output should equal 'opened vine (id 6)'
     The contents of file "$OPEN_LOG" should equal 'solo://proj/6'
@@ -128,41 +128,41 @@ Describe 'deepest-ancestor resolution'
   BeforeEach 'reset_logs'
 
   It 'opens the ancestor project of an unregistered subdirectory'
-    When run command ./solo "$workspace/vine/sub"
+    When run script ./solopen "$workspace/vine/sub"
     The status should equal 0
     The output should equal 'opened vine (id 6)'
     The contents of file "$OPEN_LOG" should equal 'solo://proj/6'
   End
 
   It 'prefers the deepest ancestor when projects nest'
-    When run command ./solo "$workspace/parent/child/grand"
+    When run script ./solopen "$workspace/parent/child/grand"
     The status should equal 0
     The output should equal 'opened child (id 21)'
     The contents of file "$OPEN_LOG" should equal 'solo://proj/21'
   End
 
   It 'prefers an exact match over a shallower ancestor'
-    When run command ./solo "$workspace/parent/child"
+    When run script ./solopen "$workspace/parent/child"
     The status should equal 0
     The output should equal 'opened child (id 21)'
   End
 
   It 'never ancestor-matches the ignored home project, creating instead'
-    When run command ./solo "$HOME/Projects"
+    When run script ./solopen "$HOME/Projects"
     The status should equal 0
     The line 1 of output should equal "created Projects (id 13) at $HOME/Projects"
     The contents of file "$OPEN_LOG" should equal 'solo://proj/13'
   End
 
   It 'still opens the home project via exact match'
-    When run command ./solo "$HOME"
+    When run script ./solopen "$HOME"
     The status should equal 0
     The output should equal 'opened ~ (id 7)'
     The contents of file "$OPEN_LOG" should equal 'solo://proj/7'
   End
 
   It 'does not treat a sibling with a shared prefix as an ancestor, creating instead'
-    When run command ./solo "$workspace/vine-two"
+    When run script ./solopen "$workspace/vine-two"
     The status should equal 0
     The line 1 of output should equal "created vine-two (id 13) at $workspace/vine-two"
     The contents of file "$OPEN_LOG" should equal 'solo://proj/13'
@@ -174,7 +174,7 @@ Describe 'create-on-miss'
   BeforeEach 'reset_logs'
 
   It 'creates and opens a project for an unregistered directory'
-    When run command ./solo "$workspace/unregistered"
+    When run script ./solopen "$workspace/unregistered"
     The status should equal 0
     The line 1 of output should equal "created unregistered (id 13) at $workspace/unregistered"
     The line 2 of output should equal 'opened unregistered (id 13)'
@@ -184,14 +184,14 @@ Describe 'create-on-miss'
 
   It 'uses the literal directory, not the enclosing git root'
     mkdir -p "$workspace/unregistered/.git" "$workspace/unregistered/subdir"
-    When run command ./solo "$workspace/unregistered/subdir"
+    When run script ./solopen "$workspace/unregistered/subdir"
     The status should equal 0
     The line 1 of output should equal "created subdir (id 13) at $workspace/unregistered/subdir"
     The contents of file "$CLI_LOG" should include "projects create subdir $workspace/unregistered/subdir --json"
   End
 
   It 'refuses to create over registered descendants and lists them'
-    When run command ./solo "$workspace"
+    When run script ./solopen "$workspace"
     The status should equal 1
     The stderr should include 'registered projects exist beneath'
     The stderr should include "vine (id 6) at $workspace/vine"
@@ -202,14 +202,14 @@ Describe 'create-on-miss'
   End
 
   It 'creates despite descendants with --force after the path'
-    When run command ./solo "$workspace" --force
+    When run script ./solopen "$workspace" --force
     The status should equal 0
     The line 1 of output should equal "created $(basename "$workspace") (id 13) at $workspace"
     The contents of file "$OPEN_LOG" should equal 'solo://proj/13'
   End
 
   It 'creates despite descendants with --force before the path'
-    When run command ./solo --force "$workspace"
+    When run script ./solopen --force "$workspace"
     The status should equal 0
     The line 1 of output should equal "created $(basename "$workspace") (id 13) at $workspace"
   End
@@ -220,7 +220,7 @@ Describe 'app lifecycle'
   BeforeEach 'reset_logs'
 
   It 'does not launch the app when the API is already reachable'
-    When run command ./solo "$workspace/vine"
+    When run script ./solopen "$workspace/vine"
     The status should equal 0
     The output should equal 'opened vine (id 6)'
     The contents of file "$OPEN_LOG" should equal 'solo://proj/6'
@@ -229,7 +229,7 @@ Describe 'app lifecycle'
   It 'launches the app and waits when nothing is running'
     export STATUS_MODE=after-launch PS_SOLO_RUNNING=0
     export LAUNCH_MARKER="$SHELLSPEC_TMPBASE/launched"
-    When run command ./solo "$workspace/vine"
+    When run script ./solopen "$workspace/vine"
     The status should equal 0
     The output should equal 'opened vine (id 6)'
     The line 1 of contents of file "$OPEN_LOG" should equal '-a Solo'
@@ -238,7 +238,7 @@ Describe 'app lifecycle'
 
   It 'explains how to enable CLI access when the app runs but the API is unreachable'
     export STATUS_MODE=down PS_SOLO_RUNNING=1
-    When run command ./solo "$workspace/vine"
+    When run script ./solopen "$workspace/vine"
     The status should equal 1
     The stderr should include 'local CLI access'
     The contents of file "$OPEN_LOG" should equal ''
@@ -246,7 +246,7 @@ Describe 'app lifecycle'
 
   It 'gives up with a clear error when the launched app never answers'
     export STATUS_MODE=down PS_SOLO_RUNNING=0 SOLO_LAUNCH_TIMEOUT=1
-    When run command ./solo "$workspace/vine"
+    When run script ./solopen "$workspace/vine"
     The status should equal 1
     The stderr should include 'timed out'
     The contents of file "$OPEN_LOG" should equal '-a Solo'

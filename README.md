@@ -1,9 +1,9 @@
-# solo
+# solopen
 
 Open (or create) the Solo project for a directory, from the shell.
 
 ```
-solo [--force] <directory>
+solopen [--force] <directory>
 ```
 
 Resolves the directory to a Solo project and brings it up in Solo.app:
@@ -24,7 +24,7 @@ If Solo.app isn't running it is launched and polled until the CLI answers
 local API is unreachable, local CLI access is off in Solo's settings — the
 script says so immediately instead of polling.
 
-Installed on PATH via `~/bin/solo → ~/Projects/solo/solo`.
+Installed on PATH via `~/bin/solopen → ~/Projects/solopen/solopen`.
 `~/bin/solo-cli → /Applications/Solo.app/Contents/MacOS/solo-cli` exposes the
 bundled CLI the script shells out to (override with `SOLO_CLI`). Requires
 **local CLI access** enabled in Solo's settings; the script says so when it

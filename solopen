@@ -5,7 +5,7 @@ SOLO_CLI="${SOLO_CLI:-solo-cli}"
 
 usage() {
   cat <<'EOF'
-Usage: solo [--force] <directory>
+Usage: solopen [--force] <directory>
 
 Open (or create) the Solo project for a directory.
 
@@ -16,13 +16,13 @@ EOF
 }
 
 die() {
-  printf 'solo: %s\n\n' "$1" >&2
+  printf 'solopen: %s\n\n' "$1" >&2
   usage >&2
   exit 1
 }
 
 fail() {
-  printf 'solo: %s\n' "$1" >&2
+  printf 'solopen: %s\n' "$1" >&2
   exit 1
 }
 
