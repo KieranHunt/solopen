@@ -8,12 +8,12 @@ setup_stub_env() {
   workspace="$(mktemp -d "$SHELLSPEC_TMPBASE/workspace.XXXXXX")"
   workspace="$(realpath "$workspace")"
   mkdir -p "$workspace/vine" "$workspace/vine/sub" "$workspace/vine-two" \
-    "$workspace/unregistered" "$workspace/parent/child/grand"
+    "$workspace/slo" "$workspace/unregistered" "$workspace/parent/child/grand"
   ln -s "$workspace/vine" "$workspace/vine-link"
   cat >"$PROJECTS_JSON" <<EOF
 {"ok":true,"command":"projects list","data":{"hasMore":false,"projects":[
   {"id":6,"name":"vine","displayName":null,"path":"$workspace/vine"},
-  {"id":9,"name":"slo","displayName":null,"path":"$workspace/slo"},
+  {"id":9,"name":"slo","displayName":"SLO Display","path":"$workspace/slo"},
   {"id":20,"name":"parent","displayName":null,"path":"$workspace/parent"},
   {"id":21,"name":"child","displayName":null,"path":"$workspace/parent/child"},
   {"id":7,"name":"~","displayName":null,"path":"$HOME"}
@@ -103,6 +103,13 @@ Describe 'exact-match open'
     The status should equal 0
     The output should equal 'opened vine (id 6)'
     The contents of file "$OPEN_LOG" should equal 'solo://proj/6'
+  End
+
+  It 'prefers the display name in output when set'
+    When run script ./solopen "$workspace/slo"
+    The status should equal 0
+    The output should equal 'opened SLO Display (id 9)'
+    The contents of file "$OPEN_LOG" should equal 'solo://proj/9'
   End
 
   It 'resolves relative paths before matching'

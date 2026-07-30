@@ -81,7 +81,7 @@ jq -e '.data.hasMore | not' >/dev/null <<<"$projects_json" || fail "more than 50
 ancestor_ignore='["'"$HOME"'"]'
 
 match="$(jq -r --arg path "$target" \
-  'first(.data.projects[] | select(.path == $path)) | "\(.id)\t\(.name)"' <<<"$projects_json")"
+  'first(.data.projects[] | select(.path == $path)) | "\(.id)\t\(.displayName // .name)"' <<<"$projects_json")"
 
 if [[ -z "$match" ]]; then
   match="$(jq -r --arg path "$target" --argjson ignore "$ancestor_ignore" '
@@ -90,7 +90,7 @@ if [[ -z "$match" ]]; then
      | select(.path as $pp | ($path + "/") | startswith($pp + "/"))]
     | sort_by(.path | length)
     | last // empty
-    | "\(.id)\t\(.name)"' <<<"$projects_json")"
+    | "\(.id)\t\(.displayName // .name)"' <<<"$projects_json")"
 fi
 
 if [[ -n "$match" ]]; then
@@ -100,7 +100,7 @@ else
   descendants="$(jq -r --arg path "$target" '
     .data.projects[]
     | select(.path as $pp | ($pp + "/") | startswith($path + "/"))
-    | "  \(.name) (id \(.id)) at \(.path)"' <<<"$projects_json")"
+    | "  \(.displayName // .name) (id \(.id)) at \(.path)"' <<<"$projects_json")"
 
   if [[ -n "$descendants" && $force -eq 0 ]]; then
     fail "registered projects exist beneath $target:
@@ -113,7 +113,7 @@ pass --force to create a project here anyway"
   jq -e '.ok == true' >/dev/null <<<"$create_json" || fail "solo-cli reported an error creating the project"
 
   id="$(jq -r '.data.project.id' <<<"$create_json")"
-  name="$(jq -r '.data.project.name' <<<"$create_json")"
+  name="$(jq -r '.data.project | .displayName // .name' <<<"$create_json")"
   echo "created $name (id $id) at $target"
 fi
 
