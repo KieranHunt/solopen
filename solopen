@@ -5,11 +5,11 @@ SOLO_CLI="${SOLO_CLI:-solo-cli}"
 
 usage() {
   cat <<'EOF'
-Usage: solopen [--force] <directory>
+Usage: solopen [--force] [directory]
 
 Open (or create) the Solo project for a directory.
 
-  <directory>   directory whose Solo project to open
+  [directory]   directory whose Solo project to open (defaults to the current directory)
   --force       create even if registered projects exist beneath the directory
   -h, --help    show this help
 EOF
@@ -48,7 +48,7 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-[[ -n "$target" ]] || die "a directory argument is required"
+target="${target:-.}"
 [[ -e "$target" ]] || die "no such directory: $target"
 [[ -d "$target" ]] || die "not a directory: $target"
 

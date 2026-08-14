@@ -26,12 +26,6 @@ EOF
 reset_logs() { : >"$OPEN_LOG" && : >"$CLI_LOG" && rm -f "$SHELLSPEC_TMPBASE/launched"; }
 
 Describe 'argument validation'
-  It 'prints usage and fails on bare invocation'
-    When run script ./solopen
-    The status should equal 1
-    The stderr should include 'Usage:'
-  End
-
   It 'prints usage and fails on -h'
     When run script ./solopen -h
     The status should equal 1
@@ -95,6 +89,13 @@ Describe 'exact-match open'
 
   It 'opens the project for . from inside the directory'
     When run run_solo_from "$workspace/vine" .
+    The status should equal 0
+    The output should equal 'opened vine (id 6)'
+    The contents of file "$OPEN_LOG" should equal 'solo://proj/6'
+  End
+
+  It 'opens the project for the current directory when none is given'
+    When run run_solo_from "$workspace/vine"
     The status should equal 0
     The output should equal 'opened vine (id 6)'
     The contents of file "$OPEN_LOG" should equal 'solo://proj/6'

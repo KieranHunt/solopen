@@ -7,8 +7,10 @@
 Open (or create) the Solo project for a directory, from the shell.
 
 ```sh
-solopen [--force] <directory>
+solopen [--force] [directory]
 ```
+
+Defaults to the current directory when `directory` is omitted.
 
 Resolves the directory to a Solo project and brings it up in Solo.app:
 
